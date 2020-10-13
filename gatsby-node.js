@@ -4,6 +4,7 @@ const steps = require("./dist/steps/index")
 module.exports = runApisInSteps({
   onPreInit: [steps.setErrorMap],
 
+  pluginOptionsSchema: [steps.declarePluginOptionsSchema],
   createSchemaCustomization: [
     steps.setGatsbyApiToState,
     steps.ensurePluginRequirementsAreMet,
