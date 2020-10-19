@@ -1,31 +1,4 @@
-const queryTypes = [
-  `UserToMediaItemConnection`,
-  `WpContentNodeToEditLockConnectionEdge`,
-  `WPPageInfo`,
-  /* TODO: finish this list */
-]
-
 export function declarePluginOptionsSchema({ Joi }) {
-  const type = Joi.object({
-    /* TODO: Finish this */
-    MediaItem: Joi.object({
-      lazyNodes: Joi.boolean().default(false),
-      localFile: Joi.object({
-        excludeByMimeTypes: Joi.array().items(Joi.string()),
-      }),
-      beforeChangeNode: Joi.function().arity(1),
-    }),
-  })
-
-  queryTypes.forEach((queryType) => {
-    type.append({
-      [queryType]: Joi.object({
-        exclude: Joi.boolean().default(true),
-        excludeFieldNames: Joi.array().items(Joi.string()),
-      }),
-    })
-  })
-
   return Joi.object({
     url: Joi.string(),
     verbose: Joi.boolean().default(true),
@@ -71,6 +44,47 @@ export function declarePluginOptionsSchema({ Joi }) {
       imageQuality: Joi.number().integer().default(90),
       createStaticFiles: Joi.boolean().default(true),
     }),
-    type,
+    type: Joi.object().custom((value, helpers) => {
+      const reservedKeys = [`MediaItem`, `ContentNode`, `TermNode`, `Menu`]
+      const dynamicKeys = Object.keys(value).filter(
+        (k) => !reservedKeys.includes(k)
+      )
+
+      Joi.assert(
+        value.MediaItem,
+        Joi.object({
+          lazyNodes: Joi.boolean().default(false),
+          localFile: Joi.object({
+            excludeByMimeTypes: Joi.array().items(Joi.string()),
+          }),
+          beforeChangeNode: Joi.function().arity(1),
+        }),
+        `type.MediaItem`
+      )
+
+      const nodeSchema = Joi.object({
+        nodeInterface: Joi.boolean().default(true),
+      })
+
+      Joi.assert(value.ContentNode, nodeSchema, `type.ContentNode`)
+      Joi.assert(value.TermNode, nodeSchema, `type.TermNode`)
+      Joi.assert(
+        value.Menu,
+        Joi.object({
+          beforeChangeNode: Joi.function().arity(1),
+        }),
+        `type.Menu`
+      )
+
+      dynamicKeys.forEach((k) => {
+        Joi.assert(
+          value[k],
+          Joi.object({
+            exclude: Joi.boolean(),
+            excludeFieldNames: Joi.array().items(Joi.string()),
+          })
+        )
+      })
+    }),
   })
 }
